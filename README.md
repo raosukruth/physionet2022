@@ -4,7 +4,7 @@
 
 This repository contains python implementation for the George B. Moody PhysioNet Challenge 2022. The code is tested on windows system and currently being debugged for an overflow issue on Linux systems. You can try it by running the following commands on the Challenge training sets. These commands should take a few minutes or less to run from start to finish on a recent personal computer.
 
-For this example, we implemented a random forest classifier with several features. You can use a different classifier, features, and libraries for your entry. This simpple example is designed **not** not to perform well, so you should **not** use it as a baseline for your model's performance.
+We implemented a custom Multi Label Perceptron classifier with Stochastic gradient descent for back propagation. We have also added Adam optimizer
 
 This code uses four main scripts, described below, to train and run a model for the 2022 Challenge.
 
