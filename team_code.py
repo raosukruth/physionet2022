@@ -97,16 +97,26 @@ def train_challenge_model(data_folder, model_folder, verbose):
     #murmur_classifier = RandomForestClassifier(n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, murmurs)
     #outcome_classifier = RandomForestClassifier(n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, outcomes)
 
-    hidden_layer_neurons = [256]
+    features_mean = np.mean(features, axis=0)
+    features_max_min = np.max(features, axis=0) - np.min(features, axis=0)
+    features = (features - features_mean) / features_max_min
+
+    hidden_layer_neurons = [18]
     murmur_classifier = mlp.Mlp(hidden_layer_neurons,
                             features.shape[1], murmurs.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features.T, murmurs.T)
+                            verbose=True).fit(features.T, murmurs.T, epochs=2000)
 
     outcome_classifier = mlp.Mlp(hidden_layer_neurons,
                             features.shape[1], outcomes.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features.T, outcomes.T)
+                            verbose=True).fit(features.T, outcomes.T, epochs=2000)
+
+    murmur_classifier.data_store['mean'] = features_mean
+    murmur_classifier.data_store['max-min'] = features_max_min
+
+    outcome_classifier.data_store['mean'] = features_mean
+    outcome_classifier.data_store['max-min'] = features_max_min
 
     # Save the model.
     save_challenge_model(model_folder, imputer, murmur_classes, murmur_classifier, outcome_classes, outcome_classifier)
@@ -136,9 +146,13 @@ def run_challenge_model(model, data, recordings, verbose):
     features = features.reshape(1, -1)
     features = imputer.transform(features)
 
+    features_mean = murmur_classifier.data_store['mean']
+    features_max_min = murmur_classifier.data_store['max-min']
+    features = (features - features_mean) / features_max_min
+
     # Get classifier probabilities.
     murmur_probabilities = murmur_classifier.predict_proba(features.T)
-    #murmur_probabilities = np.array(murmur_probabilities)
+    murmur_probabilities = np.array(murmur_probabilities)
     #murmur_probabilities = np.asarray(murmur_probabilities, dtype=np.float32)[:, 0, 1]
     outcome_probabilities = outcome_classifier.predict_proba(features.T)
     #outcome_probabilities = np.asarray(outcome_probabilities, dtype=np.float32)[:, 0, 1]
@@ -154,10 +168,7 @@ def run_challenge_model(model, data, recordings, verbose):
     # Concatenate classes, labels, and probabilities.
     classes = murmur_classes + outcome_classes
     labels = np.concatenate((murmur_labels, outcome_labels))
-
-    probabilities = [[murmur_labels], [outcome_labels]]
-
-    #probabilities = np.concatenate((murmur_probabilities, outcome_probabilities))
+    probabilities = np.concatenate((murmur_probabilities, outcome_probabilities))
 
     return classes, labels, probabilities
 
