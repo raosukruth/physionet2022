@@ -9,8 +9,9 @@ def d_relu(z):
 
 def softmax(z):
     # To avoid overflow, reduce the exponent
-    low_z = z - np.max(z, axis=0, keepdims=True)
-    return np.exp(low_z) / np.sum(np.exp(low_z), axis=0, keepdims=True)
+    low_z = z - np.max(z)
+    result = np.exp(low_z) / np.sum(np.exp(low_z), axis=0, keepdims=True)
+    return result
 
 def cross_entropy_loss(y_hat, y):
     return -xlogy(y, y_hat).sum() / y_hat.shape[0]  # scikit-learn implementation
@@ -24,8 +25,9 @@ class Layer:
         self.num_inputs = num_inputs
         self.activation_fn = activation_fn
         self.gradient_fn = gradient_fn
+        
         self.w = np.random.randn(num_neurons, num_inputs)
-        self.b = np.random.rand(num_neurons, 1)
+        self.b = np.random.randn(num_neurons, 1)
         self.mw = np.zeros(self.w.shape)
         self.mb = np.zeros(self.b.shape)
         self.vw = np.zeros(self.w.shape)
@@ -42,6 +44,7 @@ class Mlp:
     def __init__(self, hidden_neurons, num_features, num_outputs, 
                  hidden_activation_fn, hidden_gradient_fn, 
                  output_activation_fn, lr=0.01, verbose=False):
+        np.random.seed(42)
         self.layers = []
         num_inputs = num_features
         for neurons in hidden_neurons:
@@ -60,18 +63,18 @@ class Mlp:
         self.output_activation_fn = output_activation_fn
         self.lr = lr
         self.verbose = verbose
-        
+        self.data_store = {}
+  
     def forward(self, x):
         inp = x
-        outputs = []
+        output = None
         for layer in self.layers:
             output = layer.output(inp)
-            outputs.append(output)
             inp = output
-        return outputs
+        return output
     
     def predict_proba(self, x):
-        return self.forward(x)[-1]
+        return self.forward(x)
     
     def predict(self, x):
         y_hat = np.zeros([self.num_outputs, x.shape[1]]).astype(int)
@@ -111,12 +114,12 @@ class Mlp:
             batches.append((x_batch, y_batch))
         return batches
                              
-    def fit(self, x, y, batch_size=200, epochs=5000):
+    def fit(self, x, y, batch_size=200, epochs=500):
         for e in range(epochs):
             cost = 0
             batches = self.make_mini_batches(x, y, batch_size)
             for x_batch, y_batch in batches:    
-                y_hat = self.forward(x_batch)[-1]
+                y_hat = self.forward(x_batch)
                 cost = cross_entropy_loss(y_hat, y_batch)
                 self.backward(x_batch, y_batch, y_hat)
             if self.verbose and (e % 500 == 0):
