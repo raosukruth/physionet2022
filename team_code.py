@@ -97,6 +97,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     #murmur_classifier = RandomForestClassifier(n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, murmurs)
     #outcome_classifier = RandomForestClassifier(n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, outcomes)
 
+    # Do min-max features scaling
     features_mean = np.mean(features, axis=0)
     features_max_min = np.max(features, axis=0) - np.min(features, axis=0)
     features = (features - features_mean) / features_max_min
@@ -105,13 +106,14 @@ def train_challenge_model(data_folder, model_folder, verbose):
     murmur_classifier = mlp.Mlp(hidden_layer_neurons,
                             features.shape[1], murmurs.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features.T, murmurs.T, epochs=2000)
+                            verbose=True).fit(features.T, murmurs.T, epochs=4000)
 
     outcome_classifier = mlp.Mlp(hidden_layer_neurons,
                             features.shape[1], outcomes.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features.T, outcomes.T, epochs=2000)
-
+                            verbose=True).fit(features.T, outcomes.T, epochs=4000)
+    
+    # Save mean and max-min difference in the model
     murmur_classifier.data_store['mean'] = features_mean
     murmur_classifier.data_store['max-min'] = features_max_min
 
@@ -146,8 +148,10 @@ def run_challenge_model(model, data, recordings, verbose):
     features = features.reshape(1, -1)
     features = imputer.transform(features)
 
+    # Retreive features scaling parameteres from the model
     features_mean = murmur_classifier.data_store['mean']
     features_max_min = murmur_classifier.data_store['max-min']
+    # Do features scaling
     features = (features - features_mean) / features_max_min
 
     # Get classifier probabilities.
