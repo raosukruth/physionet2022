@@ -2,23 +2,42 @@
 from sklearn.metrics import accuracy_score
 import CsvPreprocess as cpp
 import MultiLayerPerceptron as mlp
+import numpy as np
   
-features_train_1, features_test_1, features_train_2, features_test_2,\
+mci_train, mci_test, oci_train, oci_test,\
     murmurs_train, murmurs_test, outcomes_train, outcomes_test = cpp.get_data()
+
+assert np.isnan(murmurs_train).any() == False
+
+def scale_features(f):
+    print("f shape", f.shape)
+    fmean = np.mean(f, axis=1, keepdims=True)
+    fminmax = np.max(f, axis=1, keepdims=True) - np.min(f, axis=1, keepdims=True)
+    f = (f - fmean) / fminmax
+    assert np.isnan(f).any() == False, "f has nans {}".format(f)
+    return f
+
+# Scale features
+mci_train = scale_features(mci_train)
+oci_train = scale_features(oci_train)
+mci_test = scale_features(mci_test)
+oci_test = scale_features(oci_test)
 
 hidden_layer_neurons = [32]
 murmur_classifier = mlp.Mlp(hidden_layer_neurons,
-                            features_train_1.shape[1], murmurs_train.shape[1],
+                            mci_train.shape[1], murmurs_train.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features_train_1.T, murmurs_train.T, batch_size=32)
+                            verbose=True).fit(mci_train.T, murmurs_train.T, epochs=2000)
 
-outcome_classifier = mlp.Mlp(hidden_layer_neurons,
-                            features_train_2.shape[1], outcomes_train.shape[1],
-                            mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(features_train_2.T, outcomes_train.T, batch_size=32)
-
-y_hat = murmur_classifier.predict_proba(features_test_1.T)
+y_hat = murmur_classifier.predict(mci_test.T)
+assert (np.isnan(y_hat) == True).sum() == 0
 print("Murmurs accuracy: ", accuracy_score(murmurs_test, y_hat.T))
 
-y_hat = murmur_classifier.predict_proba(features_test_2.T)
-print("Murmurs accuracy: ", accuracy_score(outcomes_test, y_hat.T))
+outcome_classifier = mlp.Mlp(hidden_layer_neurons,
+                            oci_train.shape[1], outcomes_train.shape[1],
+                            mlp.relu, mlp.d_relu, mlp.softmax,
+                            verbose=True).fit(oci_train.T, outcomes_train.T, batch_size=2000)
+
+y_hat = outcome_classifier.predict(oci_test.T)
+assert (np.isnan(y_hat) == True).sum() == 0
+print("Outcomes accuracy: ", accuracy_score(outcomes_test, y_hat.T))
