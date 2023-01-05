@@ -23,11 +23,11 @@ oci_train = scale_features(oci_train)
 mci_test = scale_features(mci_test)
 oci_test = scale_features(oci_test)
 
-hidden_layer_neurons = [32]
+hidden_layer_neurons = [14]
 murmur_classifier = mlp.Mlp(hidden_layer_neurons,
                             mci_train.shape[1], murmurs_train.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(mci_train.T, murmurs_train.T, epochs=2000)
+                            verbose=True).fit(mci_train.T, murmurs_train.T, epochs=1000)
 
 y_hat = murmur_classifier.predict(mci_test.T)
 assert (np.isnan(y_hat) == True).sum() == 0
@@ -36,7 +36,7 @@ print("Murmurs accuracy: ", accuracy_score(murmurs_test, y_hat.T))
 outcome_classifier = mlp.Mlp(hidden_layer_neurons,
                             oci_train.shape[1], outcomes_train.shape[1],
                             mlp.relu, mlp.d_relu, mlp.softmax,
-                            verbose=True).fit(oci_train.T, outcomes_train.T, batch_size=2000)
+                            verbose=True).fit(oci_train.T, outcomes_train.T, batch_size=1000)
 
 y_hat = outcome_classifier.predict(oci_test.T)
 assert (np.isnan(y_hat) == True).sum() == 0
