@@ -7,6 +7,17 @@ def relu(z):
 def d_relu(z):
     return np.maximum(z > 0, 0)
 
+def tanh(z):
+    return np.tanh(z)
+
+def d_tanh(z):
+    return 1-(tanh(z) ** 2)
+
+def sigmoid(z):
+    if np.all(z >= 0):
+        return 1.0 / (1.0 + np.exp(-z))
+    return np.exp(z) / (1.0 + np.exp(z))
+
 def softmax(z):
     # To avoid overflow, reduce the exponent
     low_z = z - np.max(z)
@@ -25,9 +36,14 @@ class Layer:
         self.num_inputs = num_inputs
         self.activation_fn = activation_fn
         self.gradient_fn = gradient_fn
-        
-        self.w = np.random.randn(num_neurons, num_inputs)
-        self.b = np.random.randn(num_neurons, 1)
+
+        # The following seems to provide the best results compared to various
+        # weight initialization techniques such as Xavier, He, etc.
+        min_r = 0
+        max_r = 1
+        self.w = np.random.uniform(min_r, max_r, size=(num_neurons, num_inputs))
+        self.b = np.random.uniform(min_r, max_r, size=(num_neurons, 1))
+       
         self.mw = np.zeros(self.w.shape)
         self.mb = np.zeros(self.b.shape)
         self.vw = np.zeros(self.w.shape)
@@ -43,8 +59,10 @@ class Layer:
 class Mlp:
     def __init__(self, hidden_neurons, num_features, num_outputs, 
                  hidden_activation_fn, hidden_gradient_fn, 
-                 output_activation_fn, lr=0.01, verbose=False):
-        np.random.seed(42)
+                 output_activation_fn, lr=0.01, random_state=None,
+                 verbose=False):
+        if random_state:
+            np.random.seed(random_state)
         self.layers = []
         num_inputs = num_features
         for neurons in hidden_neurons:
@@ -95,10 +113,11 @@ class Mlp:
             if idx:
                 dz = np.multiply(np.dot(layer.w.T, dz), 
                              prev_layer.gradient_fn(prev_layer.A))
-        
+            
+            # Momentum
             layer.mw = beta1 * layer.mw + (1 - beta1) * dw
             layer.mb = beta1 * layer.mb + (1 - beta1) * db
-            
+            # Adam's Optimizer - Velocity
             layer.vw = beta2 * layer.vw + (1 - beta2) * (dw ** 2)
             layer.vb = beta2 * layer.vb + (1 - beta2) * (db ** 2)
             

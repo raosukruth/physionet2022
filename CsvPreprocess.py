@@ -6,10 +6,8 @@ from sklearn.model_selection import train_test_split
 import category_encoders as ce
 
 def scale_features(f):
-    f_mean = np.mean(f, axis=0)
-    f_min_max = np.max(f, axis=0) - np.min(f, axis=0)
-    return (f - f_mean) / f_min_max
-
+    # Do min-max scaling
+    return (f - np.min(f, axis=0)) / (np.max(f, axis=0) - np.min(f, axis=0))
 
 def get_features(inp, oup):
     cbe = ce.cat_boost.CatBoostEncoder()
@@ -20,7 +18,7 @@ def get_features(inp, oup):
     # CatBoostEncoder encodes NaNs for string inputs. 
     # For numeric inputs it leaves them untouched (weight, height).
     # Replace any remaining NaNs with 0.0
-    inp = np.nan_to_num(inp, nan=0.0)
+    inp = np.nan_to_num(inp, nan=0)
     inp = scale_features(inp)
     return inp
 
@@ -37,7 +35,7 @@ def nan_count(arr):
 
 def assert_nan_count(arrays):
     for idx, arr in enumerate(arrays):
-        assert nan_count(arr) == 0, "nan count for arr } = {}".format(nan_count(arr))
+        assert nan_count(arr) == 0, "nan count for arr={} is {}".format(idx, nan_count(arr))
 
 def split_train_test(inp, oup):
     f_train, f_test, l_train, l_test = train_test_split(inp, oup, test_size=0.1) # use 10% for testing
@@ -73,7 +71,6 @@ def get_data():
 
     murmurs = multiClassEncode(murmurs)
     outcomes = multiClassEncode(outcomes)
-    np.isnan(features_murmurs)
 
     # Get training and testing data for Murmur Classifier (mc)
     mci_train, mci_test, murmurs_train, murmurs_test = split_train_test(features_murmurs, murmurs)
