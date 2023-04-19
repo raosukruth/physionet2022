@@ -56,6 +56,7 @@ class Layer:
         self.A = self.activation_fn(self.Z)
         return self.A
     
+# Multi Layer Perceptron class
 class Mlp:
     def __init__(self, hidden_neurons, num_features, num_outputs, 
                  hidden_activation_fn, hidden_gradient_fn, 
